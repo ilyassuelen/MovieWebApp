@@ -1,0 +1,10 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore SQLite DB files
+data/*.db
+
+# Ignore PyCharm settings
+.idea/
+__pycache__/
+*.pyc
