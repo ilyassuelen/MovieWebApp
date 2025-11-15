@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h1>Users</h1>
 
-<ul class="user-list">
+<h2 class="section-title">User Profiles</h2>
+
+<div class="user-grid">
     {% for user in users %}
-    <li class="user-entry">
-        <a href="{{ url_for('list_movies', user_id=user.id) }}">{{ user.name }}</a>
-    </li>
+    <div class="user-card" onclick="window.location='{{ url_for('list_movies', user_id=user.id) }}'">
+        <div class="user-avatar">🎭</div>
+        <p class="user-name">{{ user.name }}</p>
+    </div>
     {% endfor %}
-</ul>
+</div>
 
-<form action="{{ url_for('create_user') }}" method="post">
-    <input type="text" name="name" placeholder="New user name" required>
-    <button type="submit">Add User</button>
+<form action="{{ url_for('create_user') }}" method="post" class="form-card add-user-form">
+    <input type="text" name="name" placeholder="Enter user name..." required>
+    <button type="submit" class="btn-primary">➕ Add User</button>
 </form>
 
 {% endblock %}
