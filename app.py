@@ -16,9 +16,16 @@ db.init_app(app)
 # Create DataManager Object
 data_manager = DataManager()
 
+
 @app.route("/")
 def home():
     return "Welcome to the MovieWebApp!"
+
+
+@app.route('/users')
+def list_users():
+    users = data_manager.get_users()
+    return str(users)
 
 
 if __name__ == '__main__':
