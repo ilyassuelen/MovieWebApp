@@ -30,6 +30,23 @@ def create_user():
     return redirect(url_for('index'))
 
 
+@app.route('/users/<int:user_id>/movies')
+def list_movies(user_id):
+    movies = data_manager.get_movies(user_id)
+    return render_template('movies.html', movies=movies, user_id=user_id)
+
+
+@app.route('/users/<int:user_id>/movies', methods=['POST'])
+def add_movie(user_id):
+    title = request.form.get('title')
+
+    # Temporary: Adding movie without Director/Poster
+    new_movie = Movie(name=title, user_id=user_id)
+    data_manager.add_movie(new_movie)
+
+    return redirect(url_for('list_movies', user_id=user_id))
+
+
 if __name__ == '__main__':
   with app.app_context():
     db.create_all()
