@@ -47,6 +47,9 @@ def add_movie(user_id):
     url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}"
     response = requests.get(url).json()
 
+    if response.get("Response") == "False":
+        return redirect(url_for('list_movies', user_id=user_id))
+
     # Extract Movie-Data
     movie = Movie(
         name=response.get("Title", title),
@@ -62,15 +65,34 @@ def add_movie(user_id):
 
 @app.route('/users/<int:user_id>/movies/<int:movie_id>/delete', methods=['POST'])
 def delete_movie(user_id, movie_id):
-    data_manager.delete_movie(movie_id)
+    movie = Movie.query.get(movie_id)
+
+    if movie is None:
+        print("Movie not found")
+        return redirect(url_for('list_movies', user_id=user_id))
+
+    db.session.delete(movie)
+    db.session.commit()
     return redirect(url_for('list_movies', user_id=user_id))
 
 
 @app.route('/users/<int:user_id>/movies/<int:movie_id>/update', methods=['POST'])
 def update_movie(user_id, movie_id):
     new_title = request.form.get('new_title')
-    data_manager.update_movie(movie_id, new_title)
+    movie = Movie.query.get(movie_id)
+
+    if movie is None:
+        print("Movie not found for updating")
+        return redirect(url_for('list_movies', user_id=user_id))
+
+    movie.name = new_title
+    db.session.commit()
     return redirect(url_for('list_movies', user_id=user_id))
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 
 if __name__ == '__main__':
