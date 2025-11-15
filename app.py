@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from data_manager import DataManager
 from models import db, Movie
 import os
+import requests
 
 app = Flask(__name__)
 
@@ -15,6 +16,8 @@ db.init_app(app)
 
 # Create DataManager Object
 data_manager = DataManager()
+
+OMDB_API_KEY = "b624da09"
 
 
 @app.route('/')
@@ -40,10 +43,33 @@ def list_movies(user_id):
 def add_movie(user_id):
     title = request.form.get('title')
 
-    # Temporary: Adding movie without Director/Poster
-    new_movie = Movie(name=title, user_id=user_id)
-    data_manager.add_movie(new_movie)
+    # OMDb request
+    url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}"
+    response = requests.get(url).json()
 
+    # Extract Movie-Data
+    movie = Movie(
+        name=response.get("Title", title),
+        director=response.get("Director", "Unknown"),
+        release_year=response.get("Year", None),
+        poster_url=response.get("Poster", None),
+        user_id=user_id,
+    )
+
+    data_manager.add_movie(movie)
+    return redirect(url_for('list_movies', user_id=user_id))
+
+
+@app.route('/users/<int:user_id>/movies/<int:movie_id>/delete', methods=['POST'])
+def delete_movie(user_id, movie_id):
+    data_manager.delete_movie(movie_id)
+    return redirect(url_for('list_movies', user_id=user_id))
+
+
+@app.route('/users/<int:user_id>/movies/<int:movie_id>/update', methods=['POST'])
+def update_movie(user_id, movie_id):
+    new_title = request.form.get('new_title')
+    data_manager.update_movie(movie_id, new_title)
     return redirect(url_for('list_movies', user_id=user_id))
 
 
