@@ -1,10 +1,32 @@
-# Ignore virtual environment
+# ===============================
+# Environment variables
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# Python
+# ===============================
 .venv/
-
-# Ignore SQLite DB files
-data/*.db
-
-# Ignore PyCharm settings
-.idea/
 __pycache__/
 *.pyc
+
+# ===============================
+# Database
+# ===============================
+data/*.db
+
+# ===============================
+# Frontend (Node / Vite)
+# ===============================
+node_modules/
+dist/
+.vite/
+
+# ===============================
+# IDE / OS
+# ===============================
+.idea/
+.vscode/
+.DS_Store
