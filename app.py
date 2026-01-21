@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
-from data_manager import DataManager
-from models import db, Movie
 import os
 import requests
+from dotenv import load_dotenv
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from models import db, User, Movie
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -14,89 +17,156 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Connect DB & App
 db.init_app(app)
 
-# Create DataManager Object
-data_manager = DataManager()
+# Allow frontend dev server (Vite) to call this API
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-OMDB_API_KEY = "b624da09"
-
-
-@app.route('/')
-def index():
-    users = data_manager.get_users()
-    return render_template('index.html', users=users)
+# ---- OMDb ----
+OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 
 
-@app.route('/users', methods=['POST'])
+# ---------- Helpers ----------
+def user_to_dict(u: User):
+    return {"id": u.id, "name": u.name}
+
+
+def movie_to_dict(m: Movie):
+    return {
+        "id": m.id,
+        "name": m.name,
+        "director": m.director,
+        "release_year": m.release_year,
+        "poster_url": m.poster_url,
+        "user_id": m.user_id,
+    }
+
+
+def json_error(message: str, status: int = 400):
+    return jsonify({"error": message}), status
+
+
+# ---------- API Routes ----------
+@app.get("/api/health")
+def health():
+    return jsonify({"status": "ok"})
+
+
+# USERS
+@app.get("/api/users")
+def get_users():
+    users = User.query.order_by(User.id.asc()).all()
+    return jsonify([user_to_dict(u) for u in users])
+
+
+@app.post("/api/users")
 def create_user():
-    name = request.form.get('name')
-    data_manager.create_user(name)
-    return redirect(url_for('index'))
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+
+    if not name:
+        return json_error("Name is required", 400)
+
+    new_user = User(name=name)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify(user_to_dict(new_user)), 201
 
 
-@app.route('/users/<int:user_id>/movies')
-def list_movies(user_id):
-    movies = data_manager.get_movies(user_id)
-    return render_template('movies.html', movies=movies, user_id=user_id)
+# MOVIES
+@app.get("/api/users/<int:user_id>/movies")
+def get_movies_by_user(user_id: int):
+    user = User.query.get(user_id)
+    if user is None:
+        return json_error("User not found", 404)
+
+    movies = Movie.query.filter_by(user_id=user_id).order_by(Movie.id.desc()).all()
+    return jsonify([movie_to_dict(m) for m in movies])
 
 
-@app.route('/users/<int:user_id>/movies', methods=['POST'])
-def add_movie(user_id):
-    title = request.form.get('title')
+@app.post("/api/users/<int:user_id>/movies")
+def add_movie(user_id: int):
+    user = User.query.get(user_id)
+    if user is None:
+        return json_error("User not found", 404)
+
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return json_error("Title is required", 400)
 
     # OMDb request
     url = f"http://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}"
-    response = requests.get(url).json()
+    try:
+        response = requests.get(url, timeout=10).json()
+    except Exception:
+        return json_error("Failed to fetch movie data from OMDb", 502)
 
     if response.get("Response") == "False":
-        return redirect(url_for('list_movies', user_id=user_id))
+        return json_error(response.get("Error", "Movie not found"), 404)
 
-    # Extract Movie-Data
+    # release year parsing (OMDb returns string)
+    year_raw = response.get("Year")
+    year_int = None
+    if isinstance(year_raw, str):
+        # If release-year is like "2019–2021" -> take first part
+        try:
+            year_int = int(year_raw.split("–")[0].split("-")[0])
+        except Exception:
+            year_int = None
+
     movie = Movie(
-        name=response.get("Title", title),
-        director=response.get("Director", "Unknown"),
-        release_year=response.get("Year", None),
-        poster_url=response.get("Poster", None),
+        name=response.get("Title") or title,
+        director=response.get("Director") or "Unknown",
+        release_year=year_int,
+        poster_url=(response.get("Poster") if response.get("Poster") != "N/A" else None),
         user_id=user_id,
     )
 
-    data_manager.add_movie(movie)
-    return redirect(url_for('list_movies', user_id=user_id))
-
-
-@app.route('/users/<int:user_id>/movies/<int:movie_id>/delete', methods=['POST'])
-def delete_movie(user_id, movie_id):
-    movie = Movie.query.get(movie_id)
-
-    if movie is None:
-        print("Movie not found")
-        return redirect(url_for('list_movies', user_id=user_id))
-
-    db.session.delete(movie)
+    db.session.add(movie)
     db.session.commit()
-    return redirect(url_for('list_movies', user_id=user_id))
+    return jsonify(movie_to_dict(movie)), 201
 
 
-@app.route('/users/<int:user_id>/movies/<int:movie_id>/update', methods=['POST'])
-def update_movie(user_id, movie_id):
-    new_title = request.form.get('new_title')
+@app.put("/api/users/<int:user_id>/movies/<int:movie_id>")
+def update_movie(user_id: int, movie_id: int):
+    user = User.query.get(user_id)
+    if user is None:
+        return json_error("User not found", 404)
+
     movie = Movie.query.get(movie_id)
+    if movie is None or movie.user_id != user_id:
+        return json_error("Movie not found", 404)
 
-    if movie is None:
-        print("Movie not found for updating")
-        return redirect(url_for('list_movies', user_id=user_id))
+    data = request.get_json(silent=True) or {}
+    new_title = (data.get("new_title") or "").strip()
+    if not new_title:
+        return json_error("new_title is required", 400)
 
     movie.name = new_title
     db.session.commit()
-    return redirect(url_for('list_movies', user_id=user_id))
+    return jsonify(movie_to_dict(movie)), 200
+
+
+@app.delete("/api/users/<int:user_id>/movies/<int:movie_id>")
+def delete_movie(user_id: int, movie_id: int):
+    user = User.query.get(user_id)
+    if user is None:
+        return json_error("User not found", 404)
+
+    movie = Movie.query.get(movie_id)
+    if movie is None or movie.user_id != user_id:
+        return json_error("Movie not found", 404)
+
+    db.session.delete(movie)
+    db.session.commit()
+    return ("", 204)
 
 
 @app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
+def not_found(_):
+    return jsonify({"error": "Not found"}), 404
 
 
-if __name__ == '__main__':
-  with app.app_context():
-    db.create_all()
-
-  app.run()
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(host="0.0.0.0", port=5001, debug=True)

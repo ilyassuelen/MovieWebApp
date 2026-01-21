@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 84% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 84% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 84% 50%;
+
+    --radius: 0.5rem;
+
+    /* Netflix-inspired tokens */
+    --netflix-red: 0 84% 50%;
+    --netflix-red-hover: 0 84% 45%;
+    --netflix-black: 0 0% 5%;
+    --netflix-dark: 0 0% 9%;
+    --netflix-gray: 0 0% 45%;
+    --netflix-light: 0 0% 85%;
+
+    /* Shadows */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    --shadow-button: 0 4px 14px rgba(229, 9, 20, 0.4);
+
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 84% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 0 84% 50%;
+  }
+
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 84% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 84% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 84% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .display-title {
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+}
+
+@layer utilities {
+  .text-gradient-netflix {
+    @apply bg-gradient-to-r from-primary to-red-400 bg-clip-text text-transparent;
+  }
+
+  .glow-red {
+    box-shadow: 0 0 30px hsl(var(--netflix-red) / 0.4),
+                0 0 60px hsl(var(--netflix-red) / 0.2);
+  }
+
+  .glow-red-subtle {
+    box-shadow: 0 0 20px hsl(var(--netflix-red) / 0.2);
+  }
+
+  .card-netflix {
+    @apply bg-card rounded-md overflow-hidden;
+    box-shadow: var(--shadow-card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-netflix:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-card-hover);
+    z-index: 10;
+  }
+
+  .card-netflix-static {
+    @apply bg-card border border-border rounded-md;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease;
+  }
+
+  .card-netflix-static:hover {
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  .bg-netflix-gradient {
+    background: linear-gradient(180deg,
+      transparent 0%,
+      hsl(var(--background)) 100%
+    );
+  }
+
+  .bg-netflix-vignette {
+    background: radial-gradient(ellipse at center,
+      transparent 0%,
+      hsl(var(--background) / 0.8) 100%
+    );
+  }
+
+  .btn-netflix {
+    @apply bg-primary text-primary-foreground font-semibold px-6 py-2.5 rounded transition-all;
+    box-shadow: var(--shadow-button);
+  }
+
+  .btn-netflix:hover {
+    @apply bg-red-700;
+    transform: translateY(-1px);
+  }
+
+  .btn-netflix:active {
+    transform: translateY(0);
+  }
+}
+
+/* Custom scrollbar - Netflix style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+}
